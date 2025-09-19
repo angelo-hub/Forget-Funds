@@ -23,6 +23,8 @@ interface ConfirmationDialogProps {
   cancelText?: string;
   variant?: 'destructive' | 'default';
   children?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function ConfirmationDialog({
@@ -35,17 +37,21 @@ export function ConfirmationDialog({
   cancelText = 'Cancel',
   variant = 'destructive',
   children,
+  open,
+  onOpenChange,
 }: ConfirmationDialogProps) {
   return (
-    <AlertDialog>
-      <AlertDialogTrigger asChild>
-        {children || (
-          <Button variant={variant} size="sm">
-            {triggerIcon}
-            {triggerText}
-          </Button>
-        )}
-      </AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      {!open && (
+        <AlertDialogTrigger asChild>
+          {children || (
+            <Button variant={variant} size="sm">
+              {triggerIcon}
+              {triggerText}
+            </Button>
+          )}
+        </AlertDialogTrigger>
+      )}
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">

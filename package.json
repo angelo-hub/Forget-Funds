@@ -2,13 +2,17 @@
   "name": "forgetfunds",
   "version": "1.0.0",
   "description": "ForgetFunds - A local-first budget management application with AI-powered insights",
-  "main": "src/main.js",
+  "main": "dist-electron/main.js",
   "homepage": "./",
   "scripts": {
-    "start": "electron .",
-    "dev": "concurrently \"npm run dev:react\" \"wait-on http://localhost:3000 && electron .\"",
+    "start": "npm run build:electron-main && electron .",
+    "dev": "concurrently \"npm run dev:react\" \"npm run dev:electron\"",
+    "dev:watch": "concurrently \"npm run dev:react\" \"npm run dev:electron-watch\"",
     "dev:react": "vite",
-    "build": "tsc && vite build",
+    "dev:electron": "npm run build:electron-main && wait-on http://localhost:3000 && cross-env NODE_ENV=development electron .",
+    "dev:electron-watch": "nodemon --watch src/main.ts --watch src/lib --ext ts --exec \"npm run build:electron-main && cross-env NODE_ENV=development electron .\"",
+    "build": "npm run build:electron-main && vite build",
+    "build:electron-main": "tsc --project tsconfig.electron.json",
     "build:electron": "npm run build && electron-builder",
     "dist": "npm run build && electron-builder --publish=never",
     "pack": "electron-builder --dir",
@@ -29,20 +33,94 @@
     "icon": "icons/1024x1024.png",
     "files": [
       "dist/**/*",
-      "src/main.js",
+      "dist-electron/**/*",
       "src/preload.js",
       "icons/**/*",
       "node_modules/**/*"
     ],
     "mac": {
       "icon": "icons/1024x1024.png",
-      "category": "public.app-category.finance"
+      "category": "public.app-category.finance",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "win": {
-      "icon": "icons/1024x1024.png"
+      "icon": "icons/1024x1024.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64",
+            "ia32"
+          ]
+        }
+      ]
     },
     "linux": {
-      "icon": "icons/1024x1024.png"
+      "icon": "icons/1024x1024.png",
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "dmg": {
+      "title": "ForgetFunds ${version}",
+      "icon": "icons/1024x1024.png",
+      "background": "build/dmg-background.png",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     }
   },
   "keywords": [
@@ -55,6 +133,9 @@
   "author": "Your Name",
   "license": "MIT",
   "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/keytar": "^4.4.2",
     "@types/node": "^20.11.24",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
@@ -63,13 +144,16 @@
     "@vitejs/plugin-react": "^4.2.1",
     "autoprefixer": "^10.4.18",
     "concurrently": "^8.2.2",
+    "cross-env": "^10.0.0",
     "electron": "^29.1.4",
     "electron-builder": "^24.13.3",
+    "electron-reload": "^2.0.0-alpha.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.34.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
     "html2canvas": "^1.4.1",
+    "nodemon": "^3.1.10",
     "postcss": "^8.4.35",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.11",
@@ -90,15 +174,20 @@
     "@radix-ui/react-select": "^2.0.0",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-tabs": "^1.0.4",
+    "@types/crypto-js": "^4.2.2",
+    "better-sqlite3": "^12.2.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "crypto-js": "^4.2.0",
     "electron-store": "^8.2.0",
+    "keytar": "^7.9.0",
     "lucide-react": "^0.363.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "recharts": "^2.12.2",
     "tailwind-merge": "^2.2.1",
     "tailwindcss-animate": "^1.0.7",
-    "tesseract.js": "^5.1.1"
+    "tesseract.js": "^5.1.1",
+    "zustand": "^5.0.8"
   }
 }

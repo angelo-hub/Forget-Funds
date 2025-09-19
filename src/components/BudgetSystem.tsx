@@ -3,12 +3,14 @@ import { AccountManagement } from '@/components/features/AccountManagement';
 import { AIAssistant } from '@/components/features/AIAssistant';
 import { DebtManagement } from '@/components/features/DebtManagement';
 import { ExpenseManagement } from '@/components/features/ExpenseManagement';
+import { FinancialCharts } from '@/components/features/FinancialCharts';
 import { IncomeManagement } from '@/components/features/IncomeManagement';
 import { LoanManagement } from '@/components/features/LoanManagement';
 import { MonthlyCheckIns } from '@/components/features/MonthlyCheckIns';
 import { OCRDataParser } from '@/components/features/OCRDataParser';
 import { SavingsManagement } from '@/components/features/SavingsManagement';
 import { ForgetFundsLogo } from '@/components/ForgetFundsLogo';
+import { SettingsPanel } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,7 +20,17 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AIEstimations, BudgetData, CheckingAccount, Debt, Income, InstallmentLoan, MonthlyCheckIn, OneTimeExpense, RecurringExpense, SavingsBucket, SurveyAnswers } from '@/types/budget';
+import {
+  useAccountActions,
+  useAIActions,
+  useBudgetData,
+  useDebtActions,
+  useExpenseActions,
+  useIncomeActions,
+  useMonthlyCheckInActions,
+  useSavingsActions,
+} from '@/stores/budgetStore';
+import type { BudgetData, CheckingAccount, MonthlyCheckIn, OneTimeExpense, RecurringExpense } from '@/types/budget';
 import {
   Banknote,
   Bot,
@@ -26,77 +38,73 @@ import {
   Calendar,
   DollarSign,
   Download,
+  LineChart,
   PieChart,
   Scan,
+  Settings,
   Target,
   TrendingDown,
   TrendingUp,
   Upload,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 interface BudgetSystemProps {
-  initialData: BudgetData;
-  onDataChange: (data: BudgetData) => void;
+  onDataChange?: (data: BudgetData) => void; // Optional - Zustand handles data changes
   onExport: () => void;
   onImport: () => void;
 }
 
 export function BudgetSystem({
-  initialData,
-  onDataChange,
   onExport,
   onImport,
 }: BudgetSystemProps) {
-  const [budgetData, setBudgetData] = useState<BudgetData>(initialData);
+  // Use single Zustand store selector to avoid multiple subscriptions
+  const budgetData = useBudgetData();
+  
+  // Get actions only (these don't cause re-renders)
+  const updateIncome = useIncomeActions();
+  const { updateRecurringExpenses, updateOneTimeExpenses } = useExpenseActions();
+  const { updateDebts, updateInstallmentLoans } = useDebtActions();
+  const { updateSavingsBuckets } = useSavingsActions();
+  const { updateCheckingAccounts } = useAccountActions();
+  const { updateMonthlyCheckIns } = useMonthlyCheckInActions();
+  const { updateAIEstimations, updateSurveyAnswers } = useAIActions();
+  
+  // Extract data from single budgetData object to avoid multiple selectors
+  if (!budgetData) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="mx-auto h-32 w-32 animate-spin rounded-full border-b-2 border-primary"></div>
+          <p className="mt-4 text-muted-foreground">Loading budget data...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  const {
+    income = [],
+    recurringExpenses = [],
+    oneTimeExpenses = [],
+    debts = [],
+    installmentLoans = [],
+    savingsBuckets = [],
+    checkingAccounts = [],
+    monthlyCheckIns = [],
+    aiEstimations,
+    surveyAnswers
+  } = budgetData;
+  
+  // Uncomment if you need to show save status
+  // const hasUnsavedChanges = useHasUnsavedChanges();
+  // const lastSaved = useLastSaved();
 
-  const updateBudgetData = (newData: BudgetData) => {
-    setBudgetData(newData);
-    onDataChange(newData);
-  };
-
-  const handleIncomeChange = (income: Income[]) => {
-    const newData = { ...budgetData, income };
-    updateBudgetData(newData);
-  };
-
-  const handleRecurringExpensesChange = (recurringExpenses: RecurringExpense[]) => {
-    const newData = { ...budgetData, recurringExpenses };
-    updateBudgetData(newData);
-  };
-
-  const handleOneTimeExpensesChange = (oneTimeExpenses: OneTimeExpense[]) => {
-    const newData = { ...budgetData, oneTimeExpenses };
-    updateBudgetData(newData);
-  };
-
-  const handleDebtsChange = (debts: Debt[]) => {
-    const newData = { ...budgetData, debts };
-    updateBudgetData(newData);
-  };
-
-  const handleLoansChange = (installmentLoans: InstallmentLoan[]) => {
-    const newData = { ...budgetData, installmentLoans };
-    updateBudgetData(newData);
-  };
-
-  const handleSavingsChange = (savingsBuckets: SavingsBucket[]) => {
-    const newData = { ...budgetData, savingsBuckets };
-    updateBudgetData(newData);
-  };
-
-  const handleAIEstimationsChange = (aiEstimations: AIEstimations) => {
-    const newData = { ...budgetData, aiEstimations };
-    updateBudgetData(newData);
-  };
-
-  const handleSurveyAnswersChange = (surveyAnswers: SurveyAnswers) => {
-    const newData = { ...budgetData, surveyAnswers };
-    updateBudgetData(newData);
-  };
+  // Legacy compatibility removed - Zustand store handles all data changes
+  // The onDataChange prop is no longer needed since Zustand manages state directly
 
   const handleApplyEstimates = (groceryEstimate: number, entertainmentEstimate: number) => {
-    const updatedExpenses = [...budgetData.recurringExpenses];
+    const updatedExpenses = [...recurringExpenses];
     
     // Apply grocery estimate
     if (groceryEstimate > 0) {
@@ -128,51 +136,45 @@ export function BudgetSystem({
       }
     }
     
-    const newData = { ...budgetData, recurringExpenses: updatedExpenses };
-    updateBudgetData(newData);
+    updateRecurringExpenses(updatedExpenses);
   };
 
   const handleCheckInsChange = (monthlyCheckIns: MonthlyCheckIn[]) => {
-    const newData = { ...budgetData, monthlyCheckIns };
-    updateBudgetData(newData);
+    updateMonthlyCheckIns(monthlyCheckIns);
   };
 
   const handleAccountsChange = (checkingAccounts: CheckingAccount[]) => {
-    const newData = { ...budgetData, checkingAccounts };
-    updateBudgetData(newData);
+    updateCheckingAccounts(checkingAccounts);
   };
 
   const handleOCRExpensesParsed = (expenses: (RecurringExpense | OneTimeExpense)[]) => {
     // Separate recurring and one-time expenses
-    const recurringExpenses = expenses.filter(e => 'category' in e) as RecurringExpense[];
-    const oneTimeExpenses = expenses.filter(e => 'description' in e) as OneTimeExpense[];
+    const newRecurringExpenses = expenses.filter(e => 'category' in e) as RecurringExpense[];
+    const newOneTimeExpenses = expenses.filter(e => 'description' in e) as OneTimeExpense[];
 
     // Add to existing expenses with new IDs
     const updatedRecurringExpenses = [
-      ...budgetData.recurringExpenses,
-      ...recurringExpenses.map(e => ({
+      ...recurringExpenses,
+      ...newRecurringExpenses.map(e => ({
         ...e,
-        id: Math.max(...budgetData.recurringExpenses.map(exp => exp.id), 0) + Math.floor(Math.random() * 1000) + 1
+        id: Math.max(...recurringExpenses.map(exp => exp.id), 0) + Math.floor(Math.random() * 1000) + 1
       }))
     ];
 
     const updatedOneTimeExpenses = [
-      ...budgetData.oneTimeExpenses,
-      ...oneTimeExpenses.map(e => ({
+      ...oneTimeExpenses,
+      ...newOneTimeExpenses.map(e => ({
         ...e,
-        id: Math.max(...budgetData.oneTimeExpenses.map(exp => exp.id), 0) + Math.floor(Math.random() * 1000) + 1
+        id: Math.max(...oneTimeExpenses.map(exp => exp.id), 0) + Math.floor(Math.random() * 1000) + 1
       }))
     ];
 
-    const newData = { 
-      ...budgetData, 
-      recurringExpenses: updatedRecurringExpenses,
-      oneTimeExpenses: updatedOneTimeExpenses
-    };
-    updateBudgetData(newData);
+    // Update both expense types
+    updateRecurringExpenses(updatedRecurringExpenses);
+    updateOneTimeExpenses(updatedOneTimeExpenses);
 
     // Show success message
-    const totalAdded = recurringExpenses.length + oneTimeExpenses.length;
+    const totalAdded = newRecurringExpenses.length + newOneTimeExpenses.length;
     alert(`Successfully added ${totalAdded} expense${totalAdded !== 1 ? 's' : ''} from OCR data!`);
   };
 
@@ -183,7 +185,7 @@ export function BudgetSystem({
   };
 
   // Calculate totals
-  const totalMonthlyIncome = budgetData.income.reduce((sum, inc) => {
+  const totalMonthlyIncome = income.reduce((sum, inc) => {
     const multiplier =
       inc.frequency === 'weekly'
         ? 4.33
@@ -193,15 +195,15 @@ export function BudgetSystem({
     return sum + inc.amount * multiplier;
   }, 0);
 
-  const totalDebtPayments = budgetData.debts.reduce(
+  const totalDebtPayments = debts.reduce(
     (sum, debt) => sum + debt.minPayment,
     0
   );
-  const totalInstallmentPayments = budgetData.installmentLoans.reduce(
+  const totalInstallmentPayments = installmentLoans.reduce(
     (sum, loan) => sum + loan.monthlyPayment,
     0
   );
-  const totalRecurringExpenses = budgetData.recurringExpenses.reduce(
+  const totalRecurringExpenses = recurringExpenses.reduce(
     (sum, exp) => sum + exp.amount,
     0
   );
@@ -217,11 +219,11 @@ export function BudgetSystem({
     savings: Math.max(0, availableForSavings),
   };
 
-  const totalDebtBalance = budgetData.debts.reduce(
+  const totalDebtBalance = debts.reduce(
     (sum, debt) => sum + debt.balance,
     0
   );
-  const totalInstallmentBalance = budgetData.installmentLoans.reduce(
+  const totalInstallmentBalance = installmentLoans.reduce(
     (sum, loan) => sum + loan.balance,
     0
   );
@@ -240,7 +242,7 @@ export function BudgetSystem({
         window.electronAPI.removeAllListeners('menu-import');
       };
     }
-  }, [onExport, onImport]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -328,10 +330,14 @@ export function BudgetSystem({
           {/* Primary Navigation - Core Financial Features */}
           <div className="space-y-2">
             <div className="text-sm font-medium text-muted-foreground mb-1">Core Features</div>
-            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-6 h-auto">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 h-auto">
               <TabsTrigger value="overview" className="flex-col h-auto py-2">
                 <PieChart className="h-4 w-4 mb-1" />
                 <span className="text-xs">Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="charts" className="flex-col h-auto py-2">
+                <LineChart className="h-4 w-4 mb-1" />
+                <span className="text-xs">Charts</span>
               </TabsTrigger>
               <TabsTrigger value="income" className="flex-col h-auto py-2">
                 <TrendingUp className="h-4 w-4 mb-1" />
@@ -357,7 +363,7 @@ export function BudgetSystem({
             
             {/* Secondary Navigation - Advanced Features */}
             <div className="text-sm font-medium text-muted-foreground mb-1">Advanced Features</div>
-            <TabsList className="grid w-full grid-cols-2 lg:grid-cols-4 h-auto">
+            <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5 h-auto">
               <TabsTrigger value="checkins" className="flex-col h-auto py-2">
                 <Calendar className="h-4 w-4 mb-1" />
                 <span className="text-xs">Check-ins</span>
@@ -373,6 +379,10 @@ export function BudgetSystem({
               <TabsTrigger value="ai" className="flex-col h-auto py-2">
                 <Bot className="h-4 w-4 mb-1" />
                 <span className="text-xs">AI Assistant</span>
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex-col h-auto py-2">
+                <Settings className="h-4 w-4 mb-1" />
+                <span className="text-xs">Settings</span>
               </TabsTrigger>
             </TabsList>
           </div>
@@ -457,48 +467,68 @@ export function BudgetSystem({
             </Card>
           </TabsContent>
 
+          <TabsContent value="charts">
+            <ErrorBoundary>
+              <FinancialCharts
+                debts={debts}
+                installmentLoans={installmentLoans}
+                savingsBuckets={savingsBuckets}
+                monthlyCheckIns={monthlyCheckIns}
+                totalMonthlyIncome={totalMonthlyIncome}
+                monthlyExpenses={monthlyExpenses}
+                availableForSavings={availableForSavings}
+                budgetStartDate={budgetData.budgetStartDate}
+              />
+            </ErrorBoundary>
+          </TabsContent>
+
           <TabsContent value="income">
             <IncomeManagement 
-              income={budgetData.income}
-              onIncomeChange={handleIncomeChange}
+              income={income}
+              onIncomeChange={updateIncome}
             />
           </TabsContent>
 
           <TabsContent value="expenses">
-            <ExpenseManagement
-              recurringExpenses={budgetData.recurringExpenses}
-              oneTimeExpenses={budgetData.oneTimeExpenses}
-              onRecurringExpensesChange={handleRecurringExpensesChange}
-              onOneTimeExpensesChange={handleOneTimeExpensesChange}
+            <ExpenseManagement 
+              recurringExpenses={recurringExpenses}
+              oneTimeExpenses={oneTimeExpenses}
+              onRecurringExpensesChange={updateRecurringExpenses}
+              onOneTimeExpensesChange={updateOneTimeExpenses}
             />
           </TabsContent>
 
           <TabsContent value="debts">
-            <DebtManagement
-              debts={budgetData.debts}
-              onDebtsChange={handleDebtsChange}
+            <DebtManagement 
+              debts={debts}
+              onDebtsChange={updateDebts}
             />
           </TabsContent>
 
           <TabsContent value="loans">
-            <LoanManagement
-              installmentLoans={budgetData.installmentLoans}
-              onLoansChange={handleLoansChange}
+            <LoanManagement 
+              installmentLoans={installmentLoans}
+              onLoansChange={updateInstallmentLoans}
             />
           </TabsContent>
 
           <TabsContent value="savings">
-            <SavingsManagement
-              savingsBuckets={budgetData.savingsBuckets}
-              onSavingsChange={handleSavingsChange}
+            <SavingsManagement 
+              savingsBuckets={savingsBuckets}
+              onSavingsChange={updateSavingsBuckets}
               availableForSavings={availableForSavings}
+              monthlyIncome={totalMonthlyIncome}
+              monthlyExpenses={monthlyExpenses}
+              recurringExpenses={recurringExpenses}
+              debts={debts}
+              installmentLoans={installmentLoans}
             />
           </TabsContent>
 
           <TabsContent value="checkins">
             <ErrorBoundary>
               <MonthlyCheckIns
-                monthlyCheckIns={budgetData.monthlyCheckIns}
+                monthlyCheckIns={monthlyCheckIns}
                 onCheckInsChange={handleCheckInsChange}
                 currentMonthProjections={currentMonthProjections}
               />
@@ -508,10 +538,10 @@ export function BudgetSystem({
           <TabsContent value="accounts">
             <ErrorBoundary>
               <AccountManagement
-                checkingAccounts={budgetData.checkingAccounts}
-                recurringExpenses={budgetData.recurringExpenses}
-                debts={budgetData.debts}
-                installmentLoans={budgetData.installmentLoans}
+                checkingAccounts={checkingAccounts}
+                recurringExpenses={recurringExpenses}
+                debts={debts}
+                installmentLoans={installmentLoans}
                 onAccountsChange={handleAccountsChange}
               />
             </ErrorBoundary>
@@ -529,13 +559,29 @@ export function BudgetSystem({
           <TabsContent value="ai">
             <ErrorBoundary>
               <AIAssistant
-                aiEstimations={budgetData.aiEstimations}
-                surveyAnswers={budgetData.surveyAnswers}
-                onAIEstimationsChange={handleAIEstimationsChange}
-                onSurveyAnswersChange={handleSurveyAnswersChange}
+                aiEstimations={aiEstimations || { city: 'Austin', groceryEstimate: 0, entertainmentEstimate: 0, isEstimating: false, apiProvider: 'none' }}
+                surveyAnswers={surveyAnswers || { diningOutFrequency: 2, movieFrequency: 1, concertFrequency: 2, hasStreamingServices: true, gymMembership: false }}
+                onAIEstimationsChange={updateAIEstimations}
+                onSurveyAnswersChange={updateSurveyAnswers}
                 onApplyEstimates={handleApplyEstimates}
               />
             </ErrorBoundary>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Settings</CardTitle>
+                <CardDescription>
+                  Customize your ForgetFunds experience
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ErrorBoundary>
+                  <SettingsPanel />
+                </ErrorBoundary>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

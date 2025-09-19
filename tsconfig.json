@@ -30,7 +30,8 @@
     }
   },
   "include": [
-    "src"
+    "src",
+    "src/types/**/*"
   ],
   "exclude": [
     "src/components/BudgetSystem-original.tsx"

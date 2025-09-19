@@ -4,6 +4,7 @@ export interface Debt {
   balance: number;
   apr: number;
   minPayment: number;
+  extraPayment?: number;
   type: 'revolving';
 }
 
@@ -42,6 +43,30 @@ export interface SavingsBucket {
   current: number;
   category: 'Emergency' | 'Investment' | 'Lifestyle' | 'Education' | 'General';
   priority: 1 | 2 | 3;
+  // Dynamic goal calculation
+  isDynamic?: boolean;
+  dynamicFormula?: SavingsFormula;
+  // Computed target (calculated from formula if dynamic)
+  computedTarget?: number;
+}
+
+export interface SavingsFormula {
+  type:
+    | 'emergency_fund'
+    | 'percentage_income'
+    | 'percentage_expenses'
+    | 'custom';
+  // For emergency fund: months of expenses
+  months?: number;
+  // For percentage-based: percentage (0.1 = 10%)
+  percentage?: number;
+  // For custom formula: JavaScript expression string
+  customExpression?: string;
+  // Base calculation on specific expense categories
+  includeCategories?: string[];
+  excludeCategories?: string[];
+  // Description for display
+  description?: string;
 }
 
 export interface AIEstimations {
@@ -140,6 +165,7 @@ export interface BudgetData {
   checkingAccounts: CheckingAccount[];
   retirementAccounts: RetirementAccount[];
   debtStrategy: 'avalanche' | 'snowball';
+  budgetStartDate?: string; // Format: "2024-01-01" - when the budget tracking began
   exportDate?: string;
   version?: string;
 }
@@ -151,11 +177,29 @@ export interface DebtCalculation extends Debt {
 }
 
 export interface ChartDataPoint {
-  month: number;
+  date: string; // Format: "2024-01" or "2024-01-01"
+  month: number; // Months since budget start (for calculations)
   balance?: number;
+  projectedBalance?: number;
+  projectedBalanceWithExtra?: number;
+  actualBalance?: number;
   payment?: number;
+  projectedPayment?: number;
+  projectedPaymentWithExtra?: number;
+  actualPayment?: number;
   savings?: number;
+  projectedSavings?: number;
+  actualSavings?: number;
   target?: number;
+  income?: number;
+  projectedIncome?: number;
+  actualIncome?: number;
+  expenses?: number;
+  projectedExpenses?: number;
+  actualExpenses?: number;
+  // Net worth and debt tracking
+  debt?: number;
+  netWorth?: number;
 }
 
 export interface ExpensePieData {
@@ -168,6 +212,12 @@ export interface ExpensePieData {
 declare global {
   interface Window {
     electronAPI: {
+      checkAuthStatus: () => Promise<{
+        isLocked: boolean;
+        isAuthenticated: boolean;
+        hasLegacyData: boolean;
+        isPinConfigured: boolean;
+      }>;
       getBudgetData: () => Promise<BudgetData>;
       saveBudgetData: (data: BudgetData) => Promise<{ success: boolean }>;
       exportBudgetData: () => Promise<{

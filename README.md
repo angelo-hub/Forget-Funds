@@ -1,6 +1,12 @@
-# ForgetFunds
-
-A modern, local-first budget management application built with Electron, React, TypeScript, and shadcn/ui. Features AI-powered expense estimation and comprehensive financial tracking.
+<div align="center">
+  <img src="apps/desktop/public/forgetfunds-icon.svg" alt="ForgetFunds Logo" width="120" height="120">
+  
+  # ForgetFunds
+  
+  A modern, local-first budget management application built with Electron, React, TypeScript, and shadcn/ui. Features AI-powered expense estimation and comprehensive financial tracking.
+  
+  [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support%20development-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/angelo.girardi)
+</div>
 
 ## Features
 
@@ -149,6 +155,14 @@ src/preload.js           # Electron preload script
 - JSON format for data portability
 - Version tracking for compatibility
 - Menu-driven file operations
+
+## Support Development
+
+If you find ForgetFunds helpful, consider supporting its development:
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support%20development-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/angelo.girardi)
+
+Your support helps maintain and improve ForgetFunds for everyone!
 
 ## Contributing
 

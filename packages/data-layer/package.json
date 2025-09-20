@@ -1,0 +1,36 @@
+{
+  "name": "@forgetfunds/data-layer",
+  "version": "1.0.0",
+  "description": "Shared data layer for ForgetFunds",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist",
+    "type-check": "tsc --noEmit",
+    "postinstall": "echo 'No postinstall needed for data-layer'"
+  },
+  "keywords": [
+    "database",
+    "sqlite",
+    "data-layer",
+    "budget",
+    "finance"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@forgetfunds/shared-types": "workspace:*",
+    "better-sqlite3": "^12.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "@types/better-sqlite3": "^7.6.13",
+    "electron": "^29.1.4"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ]
+}

@@ -1,0 +1,254 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      tag_name: ${{ steps.release_notes.outputs.tag_name }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        id: release_notes
+        run: |
+          # Get the tag name
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
+          # Get previous tag for comparison
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+          # Generate release notes
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "## What's Changed" > release_notes.md
+            echo "" >> release_notes.md
+            git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD >> release_notes.md
+            echo "" >> release_notes.md
+            echo "" >> release_notes.md
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$TAG_NAME" >> release_notes.md
+          else
+            echo "## Initial Release" > release_notes.md
+            echo "" >> release_notes.md
+            echo "This is the first release of ForgetFunds - A local-first budget management application with AI-powered insights." >> release_notes.md
+          fi
+
+          # Set multiline output
+          {
+            echo 'release_notes<<EOF'
+            cat release_notes.md
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.release_notes.outputs.tag_name }}
+          release_name: ForgetFunds ${{ steps.release_notes.outputs.tag_name }}
+          body: ${{ steps.release_notes.outputs.release_notes }}
+          draft: false
+          prerelease: ${{ contains(steps.release_notes.outputs.tag_name, 'alpha') || contains(steps.release_notes.outputs.tag_name, 'beta') || contains(steps.release_notes.outputs.tag_name, 'rc') }}
+
+  build:
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+
+      - name: Prepare for app notarization (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          # Create variables
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          PP_PATH=$RUNNER_TEMP/build_pp.mobileprovision
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+
+          # Import certificate and provisioning profile from secrets
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+
+          # Create temporary keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # Import certificate to keychain
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # Apply provisioning profile
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+
+      - name: Build Electron app (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: npm run dist
+        env:
+          # macOS notarization
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build Mac App Store version (macOS)
+        if: startsWith(matrix.os, 'macos')
+        run: npm run build:mas
+        env:
+          # Mac App Store signing
+          MAS_CERTIFICATE_BASE64: ${{ secrets.MAS_CERTIFICATE_BASE64 }}
+          MAS_P12_PASSWORD: ${{ secrets.MAS_P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: Build Electron app (Windows)
+        if: startsWith(matrix.os, 'windows')
+        run: npm run dist
+        env:
+          # Windows code signing
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+
+      - name: Clean up keychain (macOS)
+        if: ${{ always() && startsWith(matrix.os, 'macos') }}
+        run: |
+          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db
+
+      - name: Get built files (macOS)
+        if: startsWith(matrix.os, 'macos')
+        id: get_files_mac
+        run: |
+          echo "dmg_file=$(find dist -name '*.dmg' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "zip_file=$(find dist -name '*.zip' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "latest_mac=$(find dist -name 'latest-mac.yml' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "mas_pkg=$(find dist -name '*.pkg' -type f | head -1)" >> $GITHUB_OUTPUT
+
+      - name: Get built files (Windows)
+        if: startsWith(matrix.os, 'windows')
+        id: get_files_win
+        run: |
+          $exe_file = Get-ChildItem -Path "dist" -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
+          $nupkg_file = Get-ChildItem -Path "dist" -Filter "*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
+          $latest_yml = Get-ChildItem -Path "dist" -Filter "latest.yml" | Select-Object -First 1 -ExpandProperty FullName
+          echo "exe_file=$exe_file" >> $env:GITHUB_OUTPUT
+          echo "nupkg_file=$nupkg_file" >> $env:GITHUB_OUTPUT
+          echo "latest_yml=$latest_yml" >> $env:GITHUB_OUTPUT
+
+      - name: Upload macOS DMG
+        if: startsWith(matrix.os, 'macos') && steps.get_files_mac.outputs.dmg_file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_mac.outputs.dmg_file }}
+          asset_name: ForgetFunds-${{ needs.create-release.outputs.tag_name }}-mac.dmg
+          asset_content_type: application/octet-stream
+
+      - name: Upload macOS ZIP
+        if: startsWith(matrix.os, 'macos') && steps.get_files_mac.outputs.zip_file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_mac.outputs.zip_file }}
+          asset_name: ForgetFunds-${{ needs.create-release.outputs.tag_name }}-mac.zip
+          asset_content_type: application/zip
+
+      - name: Upload macOS latest.yml
+        if: startsWith(matrix.os, 'macos') && steps.get_files_mac.outputs.latest_mac
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_mac.outputs.latest_mac }}
+          asset_name: latest-mac.yml
+          asset_content_type: text/yaml
+
+      - name: Upload Mac App Store PKG
+        if: startsWith(matrix.os, 'macos') && steps.get_files_mac.outputs.mas_pkg
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_mac.outputs.mas_pkg }}
+          asset_name: ForgetFunds-${{ needs.create-release.outputs.tag_name }}-mas.pkg
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows EXE
+        if: startsWith(matrix.os, 'windows') && steps.get_files_win.outputs.exe_file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_win.outputs.exe_file }}
+          asset_name: ForgetFunds-${{ needs.create-release.outputs.tag_name }}-win64.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows NUPKG
+        if: startsWith(matrix.os, 'windows') && steps.get_files_win.outputs.nupkg_file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_win.outputs.nupkg_file }}
+          asset_name: ForgetFunds-${{ needs.create-release.outputs.tag_name }}-win64.nupkg
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows latest.yml
+        if: startsWith(matrix.os, 'windows') && steps.get_files_win.outputs.latest_yml
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ${{ steps.get_files_win.outputs.latest_yml }}
+          asset_name: latest.yml
+          asset_content_type: text/yaml
+
+      - name: Upload build artifacts (backup)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.exe
+            dist/*.nupkg
+            dist/latest*.yml

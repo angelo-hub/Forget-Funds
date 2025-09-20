@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="apps/desktop/public/forgetfunds-icon.svg" alt="ForgetFunds Logo" width="120" height="120">
+  <img src="apps/desktop/icons/1024x1024.png" alt="ForgetFunds Logo" width="120" height="120">
   
   # ForgetFunds
   

@@ -4,8 +4,11 @@
   # ForgetFunds
   
   A modern, local-first budget management application built with Electron, React, TypeScript, and shadcn/ui. Features AI-powered expense estimation and comprehensive financial tracking.
-  
-  [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support%20development-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/angelo.girardi)
+
+**Built as a Turbo monorepo with pnpm workspaces for scalable development.**
+
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support%20development-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/angelo.girardi)
+
 </div>
 
 ## Features
@@ -29,21 +32,24 @@
 
 ## Tech Stack
 
+- **Architecture**: Turbo monorepo with pnpm workspaces
 - **Frontend**: React 18, TypeScript, Tailwind CSS
 - **UI Components**: shadcn/ui (Radix UI primitives)
 - **Desktop**: Electron
 - **Charts**: Recharts
 - **Icons**: Lucide React
 - **Build Tool**: Vite
+- **Package Manager**: pnpm
+- **Monorepo Tool**: Turborepo
 - **Code Quality**: ESLint, Prettier
-- **Data Storage**: Electron Store
+- **Data Storage**: SQLite with better-sqlite3
 
 ## Development Setup
 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- npm or yarn
+- pnpm (v8 or higher) - `npm install -g pnpm`
 
 ### Installation
 
@@ -57,45 +63,61 @@
 2. Install dependencies:
 
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. Start the development server:
    ```bash
-   npm run dev
+   pnpm dev:desktop
    ```
 
 ### Available Scripts
 
-- `npm run dev` - Start development mode (React dev server + Electron)
-- `npm run dev:react` - Start only React development server
-- `npm run build` - Build for production
-- `npm run build:electron` - Build and package Electron app
-- `npm run start` - Start Electron app (production build)
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint issues
-- `npm run format` - Format code with Prettier
-- `npm run format:check` - Check code formatting
-- `npm run type-check` - Run TypeScript type checking
+**Monorepo Commands:**
+
+- `pnpm dev` - Start all development servers
+- `pnpm dev:desktop` - Start desktop app development
+- `pnpm build` - Build all packages and apps
+- `pnpm lint` - Run ESLint across all packages
+- `pnpm lint:fix` - Fix ESLint issues across all packages
+- `pnpm format` - Format code with Prettier
+- `pnpm format:check` - Check code formatting
+- `pnpm type-check` - Run TypeScript type checking
+- `pnpm test` - Run tests across all packages
+- `pnpm clean` - Clean all build artifacts and node_modules
 
 ## Project Structure
 
-```
-src/
-├── components/
-│   ├── ui/              # shadcn/ui components
-│   └── BudgetSystem/    # Main application components
-├── lib/
-│   └── utils.ts         # Utility functions
-├── types/
-│   └── budget.ts        # TypeScript type definitions
-├── App.tsx              # Main application component
-├── main.tsx             # React entry point
-└── index.css            # Global styles with Tailwind
+This is a **Turbo monorepo** organized with **pnpm workspaces**:
 
-src/main.js              # Electron main process
-src/preload.js           # Electron preload script
 ```
+├── apps/
+│   └── desktop/         # Electron desktop application
+│       ├── src/
+│       │   ├── main/    # Electron main process
+│       │   ├── preload/ # Electron preload scripts
+│       │   └── renderer/ # React frontend
+│       └── package.json
+├── packages/
+│   ├── business-logic/  # Core business logic
+│   ├── data-layer/      # Database and data management
+│   ├── shared-types/    # TypeScript type definitions
+│   ├── shared-components/ # Reusable UI components
+│   └── sync-engine/     # Data synchronization (future)
+├── tools/
+│   ├── build-scripts/   # Build and deployment tools
+│   └── development-tools/ # Development utilities
+├── pnpm-workspace.yaml  # pnpm workspace configuration
+├── turbo.json          # Turborepo pipeline configuration
+└── package.json        # Root package.json
+```
+
+### Key Benefits of This Architecture:
+
+- 🚀 **Fast builds** with Turborepo's intelligent caching
+- 📦 **Shared packages** for code reuse across apps
+- 🔧 **Efficient dependency management** with pnpm workspaces
+- 🎯 **Scalable** - ready for mobile apps and web versions
 
 ## Features Overview
 

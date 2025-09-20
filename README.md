@@ -7,6 +7,10 @@
 
 **Built as a Turbo monorepo with pnpm workspaces for scalable development.**
 
+## Screenshot
+
+<img src=".github/App_Screenshot_0.1.0.png" alt="ForgetFunds Application Screenshot" width="800">
+
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-support%20development-orange?style=for-the-badge&logo=buy-me-a-coffee)](https://buymeacoffee.com/angelo.girardi)
 
 </div>

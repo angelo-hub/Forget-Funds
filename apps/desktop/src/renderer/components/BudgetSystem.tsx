@@ -13,41 +13,43 @@ import { ForgetFundsLogo } from '@/components/ForgetFundsLogo';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { Button } from '@/components/ui/button';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card';
+import { DonationModal } from '@/components/ui/DonationModal';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  useAccountActions,
-  useAIActions,
-  useBudgetData,
-  useDebtActions,
-  useExpenseActions,
-  useIncomeActions,
-  useMonthlyCheckInActions,
-  useSavingsActions,
+    useAccountActions,
+    useAIActions,
+    useBudgetData,
+    useDebtActions,
+    useExpenseActions,
+    useIncomeActions,
+    useMonthlyCheckInActions,
+    useSavingsActions,
 } from '@/stores/budgetStore';
 import type { BudgetData, CheckingAccount, MonthlyCheckIn, OneTimeExpense, RecurringExpense } from '@forgetfunds/shared-types';
 import {
-  Banknote,
-  Bot,
-  Calculator,
-  Calendar,
-  DollarSign,
-  Download,
-  LineChart,
-  PieChart,
-  Scan,
-  Settings,
-  Target,
-  TrendingDown,
-  TrendingUp,
-  Upload,
+    Banknote,
+    Bot,
+    Calculator,
+    Calendar,
+    DollarSign,
+    Download,
+    Heart,
+    LineChart,
+    PieChart,
+    Scan,
+    Settings,
+    Target,
+    TrendingDown,
+    TrendingUp,
+    Upload,
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface BudgetSystemProps {
   onDataChange?: (data: BudgetData) => void; // Optional - Zustand handles data changes
@@ -61,6 +63,9 @@ export function BudgetSystem({
 }: BudgetSystemProps) {
   // Use single Zustand store selector to avoid multiple subscriptions
   const budgetData = useBudgetData();
+  
+  // State for donation modal
+  const [showDonationModal, setShowDonationModal] = useState(false);
   
   // Get actions only (these don't cause re-renders)
   const updateIncome = useIncomeActions();
@@ -250,8 +255,17 @@ export function BudgetSystem({
         {/* Header */}
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between">
-            <div className="flex items-center">
+            <div className="flex flex-col items-start">
               <ForgetFundsLogo size={40} />
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setShowDonationModal(true)}
+                className="mt-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <Heart className="mr-2 h-4 w-4" />
+                Enjoying the app?
+              </Button>
             </div>
             <div className="flex gap-3">
               <Button onClick={onExport} variant="outline">
@@ -585,6 +599,12 @@ export function BudgetSystem({
           </TabsContent>
         </Tabs>
       </div>
+      
+      {/* Donation Modal */}
+      <DonationModal 
+        open={showDonationModal} 
+        onOpenChange={setShowDonationModal} 
+      />
     </div>
   );
 }

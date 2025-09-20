@@ -76,14 +76,32 @@ jobs:
       - name: Install Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '18'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: '8'
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Build application
-        run: npm run build
+        run: pnpm run build
 
       - name: Prepare for app notarization (macOS)
         if: startsWith(matrix.os, 'macos')
@@ -114,7 +132,9 @@ jobs:
 
       - name: Build Electron app (macOS)
         if: startsWith(matrix.os, 'macos')
-        run: npm run dist
+        run: |
+          cd apps/desktop
+          pnpm run dist
         env:
           # macOS notarization
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -123,7 +143,9 @@ jobs:
 
       - name: Build Mac App Store version (macOS)
         if: startsWith(matrix.os, 'macos')
-        run: npm run build:mas
+        run: |
+          cd apps/desktop
+          pnpm run build:mas
         env:
           # Mac App Store signing
           MAS_CERTIFICATE_BASE64: ${{ secrets.MAS_CERTIFICATE_BASE64 }}
@@ -134,7 +156,9 @@ jobs:
 
       - name: Build Electron app (Windows)
         if: startsWith(matrix.os, 'windows')
-        run: npm run dist
+        run: |
+          cd apps/desktop
+          pnpm run dist
         env:
           # Windows code signing
           CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
@@ -149,18 +173,18 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         id: get_files_mac
         run: |
-          echo "dmg_file=$(find dist -name '*.dmg' -type f | head -1)" >> $GITHUB_OUTPUT
-          echo "zip_file=$(find dist -name '*.zip' -type f | head -1)" >> $GITHUB_OUTPUT
-          echo "latest_mac=$(find dist -name 'latest-mac.yml' -type f | head -1)" >> $GITHUB_OUTPUT
-          echo "mas_pkg=$(find dist -name '*.pkg' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "dmg_file=$(find apps/desktop/dist -name '*.dmg' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "zip_file=$(find apps/desktop/dist -name '*.zip' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "latest_mac=$(find apps/desktop/dist -name 'latest-mac.yml' -type f | head -1)" >> $GITHUB_OUTPUT
+          echo "mas_pkg=$(find apps/desktop/dist -name '*.pkg' -type f | head -1)" >> $GITHUB_OUTPUT
 
       - name: Get built files (Windows)
         if: startsWith(matrix.os, 'windows')
         id: get_files_win
         run: |
-          $exe_file = Get-ChildItem -Path "dist" -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
-          $nupkg_file = Get-ChildItem -Path "dist" -Filter "*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
-          $latest_yml = Get-ChildItem -Path "dist" -Filter "latest.yml" | Select-Object -First 1 -ExpandProperty FullName
+          $exe_file = Get-ChildItem -Path "apps/desktop/dist" -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
+          $nupkg_file = Get-ChildItem -Path "apps/desktop/dist" -Filter "*.nupkg" | Select-Object -First 1 -ExpandProperty FullName
+          $latest_yml = Get-ChildItem -Path "apps/desktop/dist" -Filter "latest.yml" | Select-Object -First 1 -ExpandProperty FullName
           echo "exe_file=$exe_file" >> $env:GITHUB_OUTPUT
           echo "nupkg_file=$nupkg_file" >> $env:GITHUB_OUTPUT
           echo "latest_yml=$latest_yml" >> $env:GITHUB_OUTPUT
@@ -247,8 +271,8 @@ jobs:
         with:
           name: ${{ matrix.os }}-artifacts
           path: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*.exe
-            dist/*.nupkg
-            dist/latest*.yml
+            apps/desktop/dist/*.dmg
+            apps/desktop/dist/*.zip
+            apps/desktop/dist/*.exe
+            apps/desktop/dist/*.nupkg
+            apps/desktop/dist/latest*.yml

@@ -1,10 +1,10 @@
 import { Button } from '@/components/ui/button';
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Label } from '@/components/ui/label';
@@ -12,15 +12,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBudgetStore } from '@/stores/budgetStore';
 import {
-    Database,
-    ExternalLink,
-    Gift,
-    Heart,
-    Monitor,
-    Moon,
-    Palette,
-    RotateCcw,
-    Sun
+  Database,
+  ExternalLink,
+  Gift,
+  Heart,
+  Monitor,
+  Moon,
+  Palette,
+  RotateCcw,
+  Sun
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -153,7 +153,7 @@ export function SettingsPanel() {
             <div className="flex flex-col gap-2">
               <Button 
                 variant="outline" 
-                onClick={() => window.open('https://github.com/sponsors/forgetfunds', '_blank')}
+                onClick={() => window.open('https://github.com/sponsors/angelo-hub', '_blank')}
                 className="w-full"
               >
                 <Heart className="mr-2 h-4 w-4 text-red-500" />
@@ -166,14 +166,6 @@ export function SettingsPanel() {
                 className="w-full"
               >
                 ☕ Buy me a coffee
-                <ExternalLink className="ml-2 h-3 w-3" />
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => window.open('https://paypal.me/forgetfunds', '_blank')}
-                className="w-full"
-              >
-                💳 PayPal
                 <ExternalLink className="ml-2 h-3 w-3" />
               </Button>
             </div>

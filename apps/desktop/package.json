@@ -222,7 +222,7 @@
     "recharts": "^2.12.2",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "tesseract.js": "^5.1.1",
+    "tesseract.js": "^6.0.1",
     "update-electron-app": "^3.0.0",
     "zustand": "^5.0.8"
   }

@@ -22,7 +22,7 @@
   "license": "MIT",
   "dependencies": {
     "@forgetfunds/shared-types": "workspace:*",
-    "better-sqlite3": "^12.2.0"
+    "better-sqlite3": "^12.3.0"
   },
   "devDependencies": {
     "typescript": "^5.2.2",

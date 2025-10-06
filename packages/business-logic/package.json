@@ -23,7 +23,7 @@
     "@forgetfunds/shared-types": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.2.2"
+    "typescript": "^5.9.3"
   },
   "files": [
     "dist/**/*",

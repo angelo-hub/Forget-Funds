@@ -172,7 +172,7 @@
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
     "@types/keytar": "^4.4.2",
-    "@types/node": "^20.11.24",
+    "@types/node": "^24.7.2",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@typescript-eslint/eslint-plugin": "^7.1.1",

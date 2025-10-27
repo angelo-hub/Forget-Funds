@@ -267,7 +267,7 @@ jobs:
           asset_content_type: text/yaml
 
       - name: Upload build artifacts (backup)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: ${{ matrix.os }}-artifacts
           path: |
